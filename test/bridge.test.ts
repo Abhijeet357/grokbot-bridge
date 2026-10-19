@@ -100,6 +100,19 @@ describe("MCP auth", () => {
     expect((await mcp("tools/list", {}, { "x-api-key": "test-key" })).status).toBe(200);
   });
 
+  it("accepts the key in the path and rejects a wrong one", async () => {
+    const list = (path: string) =>
+      call(path, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: ++rpcId, method: "tools/list", params: {} }),
+      });
+    const ok = await list("/mcp/test-key");
+    expect(ok.status).toBe(200);
+    expect(await ok.text()).toContain("ask_grokbot");
+    expect((await list("/mcp/nope")).status).toBe(401);
+  });
+
   it("429s when the MCP rate limit is exceeded", async () => {
     env.MCP_RATE_LIMITER = { limit: async () => ({ success: false }) };
     const res = await mcp("tools/list", {});

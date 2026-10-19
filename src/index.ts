@@ -222,13 +222,18 @@ export default {
       return handleCallback(request, env, callback[1], callback[2]);
     }
 
-    if (url.pathname === "/mcp") {
+    // /mcp/<MCP_API_KEY> は header を付けられないクライアント（claude.ai の custom connector）用。
+    // ponytail: URL を知っていれば誰でも使える。漏れたら MCP_API_KEY を作り直す
+    const keyInPath = url.pathname.match(/^\/mcp\/([^/]+)$/)?.[1];
+    if (url.pathname === "/mcp" || keyInPath) {
       if (!env.MCP_API_KEY) return json({ error: "mcp_api_key_not_configured" }, 503);
-      if (!(await isAuthorized(request, env))) return json({ error: "unauthorized" }, 401);
+      const authorized = keyInPath ? await safeEqual(keyInPath, env.MCP_API_KEY) : await isAuthorized(request, env);
+      if (!authorized) return json({ error: "unauthorized" }, 401);
       if (!(await env.MCP_RATE_LIMITER.limit({ key: "mcp" })).success) return json({ error: "rate_limited" }, 429);
       if (!cfg) return json({ error: "misconfigured" }, 503);
       const baseUrl = env.PUBLIC_BASE_URL ?? url.origin;
-      return createMcpHandler(() => createServer(env, cfg, baseUrl))(request, env, ctx);
+      const mcpRequest = keyInPath ? new Request(new URL("/mcp", url), request) : request;
+      return createMcpHandler(() => createServer(env, cfg, baseUrl))(mcpRequest, env, ctx);
     }
 
     return json({ error: "not_found" }, 404);
