@@ -1,0 +1,46 @@
+{
+  "name": "grokbot-bridge",
+  "version": "0.1.0",
+  "description": "Cloudflare Worker that turns Grok Bot (Cursor automation webhook) callbacks into synchronous MCP tool results",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YunosukeYoshino/grokbot-mcp.git"
+  },
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types --strict-vars=false"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
+    "agents": "^0.24.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "typescript": "^5",
+    "vitest": "^4.1.0",
+    "wrangler": "^4.135.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "CURSOR_WEBHOOK_URL": {
+        "description": "Grok Bot の routine（トリガー: Webhook）の **POST 先** URL（`https://api2.cursor.sh/automations/webhook/...`）。"
+      },
+      "CURSOR_WEBHOOK_API_KEY": {
+        "description": "同じ routine の **キー**（`crsr_...`）。Bearer として webhook に付ける。"
+      },
+      "MCP_API_KEY": {
+        "description": "MCP クライアントが `/mcp` に付ける API キー。`openssl rand -hex 32` で生成する。"
+      },
+      "CALLBACK_SIGNING_SECRET": {
+        "description": "callback URL の HMAC 署名用 secret。`openssl rand -hex 32` で生成する（`MCP_API_KEY` とは別の値）。"
+      }
+    }
+  }
+}
